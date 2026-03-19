@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python3 -m py_compile main.py ztb_monitor/output/cli.py ztb_monitor/output/webhook.py ztb_monitor/output/prometheus.py)",
+      "Bash(uv venv:*)",
+      "Bash(uv pip:*)",
+      "Bash(.venv/bin/python -m py_compile ztb_monitor/auth.py ztb_monitor/config.py ztb_monitor/client.py main.py)",
+      "Bash(.venv/bin/python -c \"import click, requests, rich, dotenv, prometheus_client; print\\('OK'\\)\")",
+      "Bash(.venv/bin/python main.py devices 2>&1)",
+      "Bash(.venv/bin/python main.py -o json devices)",
+      "Bash(python3 -m json.tool)",
+      "Bash(for L in 5 10 20 50 100)",
+      "Bash(do echo -n \"limit=$L: \" .venv/bin/python -c \":*)",
+      "Bash(for P in 1 2 3)",
+      "Bash(do echo -n \"limit=5, page=$P: \" .venv/bin/python -c \":*)",
+      "Bash(for L in 1 2 3 4 5 6 7 8 9)",
+      "Bash(.venv/bin/python main.py events --limit 5)",
+      "Bash(.venv/bin/python main.py alerts)",
+      "Bash(for TAB in all blacklist quarantine active ignored)",
+      "Bash(do echo -n \"tab=$TAB: \" uv run python3 -c \":*)",
+      "Bash(for TAB in threats dns threatIntel threat_intel anomaly anomalies c2 malware)",
+      "Bash(.venv/bin/python -c \"import main; print\\('OK'\\)\")",
+      "Bash(uv run:*)",
+      "Bash(.venv/bin/python -c \"import py_compile; py_compile.compile\\(''main.py'', doraise=True\\); py_compile.compile\\(''ztb_monitor/output/cli.py'', doraise=True\\); py_compile.compile\\(''ztb_monitor/output/webhook.py'', doraise=True\\)\")",
+      "Bash(.venv/bin/python main.py health --help)",
+      "Bash(.venv/bin/python -c \"import py_compile; py_compile.compile\\(''main.py'', doraise=True\\); py_compile.compile\\(''ztb_monitor/api/devices.py'', doraise=True\\)\")",
+      "Bash(.venv/bin/python -c \"import py_compile; py_compile.compile\\(''main.py'', doraise=True\\)\")"
+    ]
+  }
+}
