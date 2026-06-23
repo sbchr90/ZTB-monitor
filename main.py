@@ -18,6 +18,7 @@ Output modes  (-o / --output):
 
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import click
@@ -39,6 +40,25 @@ ENV_FILE = Path(__file__).parent / ".env"
 OUTPUT_CHOICES = click.Choice(["cli", "json", "webhook", "prometheus"])
 _ACTIVE_STATUSES = {"active", "online", "connected"}
 _HEALTHY_GW_STATES = {"active", "online", "up", "running", "connected"}
+# DHCP lease is considered stale (health check FAILs) if older than this.
+_DHCP_MAX_LEASE_AGE_SECONDS = 5 * 60
+
+
+def _parse_timestamp(ts: str):
+    """Parse an ISO 8601 timestamp into a tz-aware UTC datetime, or None.
+
+    Handles a trailing 'Z' (UTC), which datetime.fromisoformat does not
+    accept before Python 3.11. Naive timestamps are assumed to be UTC.
+    """
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 # ---------------------------------------------------------------------------
@@ -523,20 +543,45 @@ def health(ctx, gateway_id, device_id):
             dhcp_result = dhcp_data.get("result", dhcp_data)
             ip_addresses = dhcp_result.get("ip_addresses", []) if isinstance(dhcp_result, dict) else []
 
-            if ip_addresses:
-                latest_ts = ip_addresses[0].get("timestamp", "unknown")
-                latest_ip = ip_addresses[0].get("ip_address", "")
-                results.append({
-                    "name": "DHCP (lease history)",
-                    "status": "PASS",
-                    "details": f"{sel_name} — {latest_ip}, last lease: {latest_ts}",
-                })
-            else:
+            # Find the most recent lease entry by parsed timestamp
+            dated = [
+                (dt, e) for e in ip_addresses
+                if (dt := _parse_timestamp(e.get("timestamp", ""))) is not None
+            ]
+
+            if not ip_addresses:
                 results.append({
                     "name": "DHCP (lease history)",
                     "status": "FAIL",
                     "details": f"No DHCP lease history for {sel_name} ({sel_id})",
                 })
+            elif not dated:
+                latest_ts = ip_addresses[0].get("timestamp", "unknown")
+                results.append({
+                    "name": "DHCP (lease history)",
+                    "status": "FAIL",
+                    "details": f"{sel_name} — could not parse lease timestamp: {latest_ts}",
+                })
+            else:
+                lease_dt, latest = max(dated, key=lambda x: x[0])
+                latest_ts = latest.get("timestamp", "")
+                latest_ip = latest.get("ip_address", "")
+                age = (datetime.now(timezone.utc) - lease_dt).total_seconds()
+                if age <= _DHCP_MAX_LEASE_AGE_SECONDS:
+                    results.append({
+                        "name": "DHCP (lease history)",
+                        "status": "PASS",
+                        "details": f"{sel_name} — {latest_ip}, last lease: {latest_ts} ({int(age)}s ago)",
+                    })
+                else:
+                    results.append({
+                        "name": "DHCP (lease history)",
+                        "status": "FAIL",
+                        "details": (
+                            f"{sel_name} — last lease {latest_ts} is {int(age)}s old "
+                            f"(> {_DHCP_MAX_LEASE_AGE_SECONDS}s threshold)"
+                        ),
+                    })
     except Exception as exc:
         results.append({
             "name": "DHCP (lease history)",

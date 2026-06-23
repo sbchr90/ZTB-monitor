@@ -399,7 +399,7 @@ uv run main.py -o prometheus metrics \
 Runs two operational checks against a gateway to verify that core network services are functioning:
 
 1. **DNS** — Checks that the `dnsproxy` container is present and running in the gateway's resource stats.
-2. **DHCP** — Searches the audit log (`/api/v2/devices/auditlog`) for a device's DHCP events. In CLI mode, an interactive picker lists active devices to choose from. Use `--device-id` to skip the picker, or omit it in JSON/webhook mode to auto-select the first active device.
+2. **DHCP** — Searches the audit log (`/api/v2/devices/auditlog`) for a device's DHCP events. In CLI mode, an interactive picker lists active devices to choose from. Use `--device-id` to skip the picker, or omit it in JSON/webhook mode to auto-select the first active device. The check PASSes only when the most recent lease is **less than 5 minutes old**; an older lease FAILs as stale.
 
 ```bash
 # Run the health checks (interactive device picker for DHCP)
