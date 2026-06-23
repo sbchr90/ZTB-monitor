@@ -1,6 +1,9 @@
 # Environment — contains secrets (ZTB_API_KEY, ZTB_BEARER_TOKEN)
 .env
 
+# Claude Code local settings
+.claude/
+
 # Claude Code instructions — contains internal infrastructure details
 CLAUDE.md
 
