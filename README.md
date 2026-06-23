@@ -126,17 +126,14 @@ uv run main.py alerts
 
 ### 5. Quick operational health check
 
-Verify that DNS, DHCP, and traffic are flowing through a gateway:
+Verify that DNS and DHCP are working on a gateway:
 
 ```bash
-# Run all three health checks (prompts to select a device for DHCP)
+# Run the health checks (prompts to select a device for DHCP)
 uv run main.py health --gateway-id <gateway_id>
 
 # Specify a device for the DHCP check directly
 uv run main.py health --gateway-id <gateway_id> --device-id <device_id>
-
-# Shorter sample window for traffic check
-uv run main.py health --gateway-id <gateway_id> --sample-interval 5
 ```
 
 ### 6. Infrastructure metrics
@@ -165,7 +162,7 @@ For continuous or scheduled monitoring, use webhook alerts (cron) or the Prometh
 # Cron: alert on compromised devices every 15 minutes
 */15 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook alerts
 
-# Cron: health check (DNS, DHCP, traffic) every 10 minutes
+# Cron: health check (DNS, DHCP) every 10 minutes
 */10 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook health --gateway-id <gateway_id>
 
 # Prometheus exporter for device + BGP + gateway metrics (long-running)
@@ -187,7 +184,7 @@ uv run main.py -o prometheus gateways --prometheus-port 9091
 | Recent events | `events --limit 50` |
 | Security alerts | `alerts` |
 | Infrastructure snapshot | `metrics` |
-| DNS/DHCP/traffic health check | `health --gateway-id <id>` |
+| DNS/DHCP health check | `health --gateway-id <id>` |
 | JSON output (any command) | `-o json <command>` |
 | Webhook alert (any command) | `-o webhook <command>` |
 
@@ -397,23 +394,19 @@ uv run main.py -o prometheus metrics \
 
 ---
 
-### `health` — DNS, DHCP, and traffic health checks
+### `health` — DNS and DHCP health checks
 
-Runs three operational checks against a gateway to verify that core network services are functioning:
+Runs two operational checks against a gateway to verify that core network services are functioning:
 
 1. **DNS** — Checks that the `dnsproxy` container is present and running in the gateway's resource stats.
 2. **DHCP** — Searches the audit log (`/api/v2/devices/auditlog`) for a device's DHCP events. In CLI mode, an interactive picker lists active devices to choose from. Use `--device-id` to skip the picker, or omit it in JSON/webhook mode to auto-select the first active device.
-3. **Traffic** — Takes two interface snapshots separated by `--sample-interval` seconds and checks for non-zero packet deltas.
 
 ```bash
-# Run all three health checks (interactive device picker for DHCP)
+# Run the health checks (interactive device picker for DHCP)
 uv run main.py health --gateway-id <gateway_id>
 
 # Specify a device for the DHCP check (skips picker)
 uv run main.py health --gateway-id <gateway_id> --device-id <device_id>
-
-# Shorter sample window
-uv run main.py health --gateway-id <gateway_id> --sample-interval 5
 
 # JSON output (auto-selects first device for DHCP)
 uv run main.py -o json health --gateway-id <gateway_id>
@@ -428,7 +421,6 @@ uv run main.py -o webhook health --gateway-id <gateway_id>
 |---|---|---|---|
 | `--gateway-id` | `ZTB_GATEWAY_ID` | — | **Required.** Gateway to check |
 | `--device-id` | — | — | Device ID for DHCP check (interactive picker if omitted in CLI mode; auto-selects first device in JSON/webhook mode) |
-| `--sample-interval` | — | `10` | Seconds between traffic samples |
 
 **CLI output:** Summary table with check name, PASS/FAIL status, and details, plus an overall pass count.
 
@@ -465,7 +457,7 @@ Webhook mode is designed for **cron jobs** — the script exits silently if ther
 | Devices offline | `warning` | `devices -o webhook` |
 | Gateways unhealthy / down | `critical` | `gateways -o webhook` |
 | Compromised / blacklisted devices | `critical` | `alerts -o webhook` |
-| Health check failures (DNS/DHCP/traffic) | `critical` | `health -o webhook --gateway-id <id>` |
+| Health check failures (DNS/DHCP) | `critical` | `health -o webhook --gateway-id <id>` |
 | BGP peers down | `critical` | *(raised inside Prometheus collect loop)* |
 
 ### Cron examples
@@ -480,7 +472,7 @@ Webhook mode is designed for **cron jobs** — the script exits silently if ther
 # Check for security alerts every 15 minutes
 */15 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook alerts
 
-# Health check (DNS, DHCP, traffic) every 10 minutes
+# Health check (DNS, DHCP) every 10 minutes
 */10 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook health --gateway-id <gateway_id>
 
 # Use a .env file for credentials

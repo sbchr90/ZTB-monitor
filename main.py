@@ -18,7 +18,6 @@ Output modes  (-o / --output):
 
 import json
 import sys
-import time
 from pathlib import Path
 
 import click
@@ -433,10 +432,9 @@ def metrics(ctx, gateway_id, prometheus_port, interval):
 @cli.command()
 @click.option("--gateway-id", required=True, envvar="ZTB_GATEWAY_ID", help="Gateway ID to check.")
 @click.option("--device-id", default="", help="Device ID for DHCP check (interactive picker if omitted in CLI mode).")
-@click.option("--sample-interval", default=10, show_default=True, help="Seconds between traffic samples.")
 @click.pass_context
-def health(ctx, gateway_id, device_id, sample_interval):
-    """Run DNS, DHCP, and traffic health checks for a gateway."""
+def health(ctx, gateway_id, device_id):
+    """Run DNS and DHCP health checks for a gateway."""
     client: ZTBClient = ctx.obj["client"]
     output: str = ctx.obj["output"]
     config: Config = ctx.obj["config"]
@@ -544,59 +542,6 @@ def health(ctx, gateway_id, device_id, sample_interval):
             "name": "DHCP (lease history)",
             "status": "FAIL",
             "details": f"Error checking DHCP lease history: {exc}",
-        })
-
-    # --- Traffic: two-sample interface delta ---
-    try:
-        click.echo(f"Sampling traffic over {sample_interval}s …", err=True)
-        ifaces1 = gateways_api.get_gateway_interfaces(client, gateway_id=gateway_id)
-        time.sleep(sample_interval)
-        ifaces2 = gateways_api.get_gateway_interfaces(client, gateway_id=gateway_id)
-
-        def _extract_ifaces(data):
-            if isinstance(data, list):
-                return data
-            result = data.get("result", data)
-            if isinstance(result, list):
-                return result
-            if isinstance(result, dict):
-                return result.get("rows", result.get("data", result.get("interfaces", [])))
-            return []
-
-        list1 = _extract_ifaces(ifaces1)
-        list2 = _extract_ifaces(ifaces2)
-
-        # Index by interface name (skip non-dict items)
-        map1 = {i.get("name", i.get("interface_name", "")): i for i in list1 if isinstance(i, dict)}
-        map2 = {i.get("name", i.get("interface_name", "")): i for i in list2 if isinstance(i, dict)}
-
-        deltas = []
-        any_traffic = False
-        for name, iface2 in map2.items():
-            iface1 = map1.get(name)
-            if not iface1:
-                continue
-            stats1 = iface1.get("if_stats", {}) or {}
-            stats2 = iface2.get("if_stats", {}) or {}
-            rx_p = int(stats2.get("rx_packets", 0)) - int(stats1.get("rx_packets", 0))
-            tx_p = int(stats2.get("tx_packets", 0)) - int(stats1.get("tx_packets", 0))
-            rx_b = int(stats2.get("rx_bytes", 0)) - int(stats1.get("rx_bytes", 0))
-            tx_b = int(stats2.get("tx_bytes", 0)) - int(stats1.get("tx_bytes", 0))
-            if rx_p + tx_p > 0:
-                any_traffic = True
-            deltas.append(f"{name}: rx={rx_p}pkt/{rx_b}B tx={tx_p}pkt/{tx_b}B")
-
-        detail = "; ".join(deltas) if deltas else "No interfaces found"
-        results.append({
-            "name": "Traffic (interface delta)",
-            "status": "PASS" if any_traffic else "FAIL",
-            "details": detail,
-        })
-    except Exception as exc:
-        results.append({
-            "name": "Traffic (interface delta)",
-            "status": "FAIL",
-            "details": f"Error sampling interfaces: {exc}",
         })
 
     # --- Output ---
