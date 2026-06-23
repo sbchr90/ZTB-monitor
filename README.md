@@ -18,7 +18,7 @@ A modular Python CLI for monitoring **Zscaler Zero Trust Branch (ZTB)** gateways
 ## Requirements
 
 - Python 3.9+
-- [uv](https://github.com/astral-sh/uv) (or any pip-compatible installer)
+- [uv](https://github.com/astral-sh/uv)
 
 ```bash
 uv venv
@@ -72,10 +72,10 @@ Start with a high-level overview of all devices and gateways:
 
 ```bash
 # All active devices
-python main.py devices
+uv run main.py devices
 
 # All gateways (both isolation and access types)
-python main.py gateways
+uv run main.py gateways
 ```
 
 ### 2. Filter and search
@@ -84,19 +84,19 @@ If the device or gateway list is large, narrow it down:
 
 ```bash
 # Search by hostname, IP, or MAC
-python main.py devices --search "branch-router"
+uv run main.py devices --search "branch-router"
 
 # Filter by site
-python main.py devices --site-id abc123
+uv run main.py devices --site-id abc123
 
 # Filter by tags
-python main.py devices --tags "core,router"
+uv run main.py devices --tags "core,router"
 
 # Search gateways by name or IP
-python main.py gateways --search "bedburg"
+uv run main.py gateways --search "bedburg"
 
 # Show only isolation gateways
-python main.py gateways --type isolation
+uv run main.py gateways --type isolation
 ```
 
 ### 3. Drill into a specific device or gateway
@@ -105,11 +105,11 @@ Once you have identified a device or gateway of interest, inspect it in detail u
 
 ```bash
 # Device details + last 2 hours of metrics
-python main.py devices --id <device_id> --minutes 120
+uv run main.py devices --id <device_id> --minutes 120
 
 # Gateway details: system resources, containers, hourly averages,
 # peak/low values, WAN monitor stats, and network interfaces
-python main.py gateways --id <gateway_id>
+uv run main.py gateways --id <gateway_id>
 ```
 
 ### 4. Check events and security alerts
@@ -118,10 +118,10 @@ Review recent activity and look for compromised devices:
 
 ```bash
 # Audit log / DHCP events
-python main.py events --limit 50
+uv run main.py events --limit 50
 
 # Security alerts (compromised / blacklisted devices)
-python main.py alerts
+uv run main.py alerts
 ```
 
 ### 5. Quick operational health check
@@ -130,13 +130,13 @@ Verify that DNS, DHCP, and traffic are flowing through a gateway:
 
 ```bash
 # Run all three health checks (prompts to select a device for DHCP)
-python main.py health --gateway-id <gateway_id>
+uv run main.py health --gateway-id <gateway_id>
 
 # Specify a device for the DHCP check directly
-python main.py health --gateway-id <gateway_id> --device-id <device_id>
+uv run main.py health --gateway-id <gateway_id> --device-id <device_id>
 
 # Shorter sample window for traffic check
-python main.py health --gateway-id <gateway_id> --sample-interval 5
+uv run main.py health --gateway-id <gateway_id> --sample-interval 5
 ```
 
 ### 6. Infrastructure metrics
@@ -145,10 +145,10 @@ Get a one-shot snapshot of BGP peers, GRE tunnels, VRRP status, and gateway reso
 
 ```bash
 # Infrastructure overview
-python main.py metrics
+uv run main.py metrics
 
 # Include gateway resource stats for a specific gateway
-python main.py metrics --gateway-id <gateway_id>
+uv run main.py metrics --gateway-id <gateway_id>
 ```
 
 ### 7. Set up ongoing monitoring
@@ -157,22 +157,22 @@ For continuous or scheduled monitoring, use webhook alerts (cron) or the Prometh
 
 ```bash
 # Cron: alert on offline devices every 5 minutes
-*/5 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook devices
+*/5 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook devices
 
 # Cron: alert on unhealthy gateways every 5 minutes
-*/5 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook gateways
+*/5 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook gateways
 
 # Cron: alert on compromised devices every 15 minutes
-*/15 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook alerts
+*/15 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook alerts
 
 # Cron: health check (DNS, DHCP, traffic) every 10 minutes
-*/10 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook health --gateway-id <gateway_id>
+*/10 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook health --gateway-id <gateway_id>
 
 # Prometheus exporter for device + BGP + gateway metrics (long-running)
-python main.py -o prometheus metrics --gateway-id <gateway_id> --prometheus-port 9090
+uv run main.py -o prometheus metrics --gateway-id <gateway_id> --prometheus-port 9090
 
 # Prometheus exporter for gateway health + WAN quality (long-running)
-python main.py -o prometheus gateways --prometheus-port 9091
+uv run main.py -o prometheus gateways --prometheus-port 9091
 ```
 
 ### Quick-reference cheat sheet
@@ -200,7 +200,7 @@ python main.py -o prometheus gateways --prometheus-port 9091
 These flags apply to all commands and must appear **before** the command name:
 
 ```bash
-python main.py [--output/-o cli|json|webhook|prometheus] \
+uv run main.py [--output/-o cli|json|webhook|prometheus] \
                [--api-key TOKEN] \
                [--base-url URL] \
                [--webhook-url URL] \
@@ -216,22 +216,22 @@ Fetches all active ZTB network devices, or drills into a single device for detai
 
 ```bash
 # List all active devices (CLI table)
-python main.py devices
+uv run main.py devices
 
 # Filter by search term, site, or tag
-python main.py devices --search "branch-router" --site-id abc123 --tags "core,router"
+uv run main.py devices --search "branch-router" --site-id abc123 --tags "core,router"
 
 # Paginate results
-python main.py devices --limit 50 --page 2
+uv run main.py devices --limit 50 --page 2
 
 # Inspect a single device (details + last 2 hours of metrics)
-python main.py devices --id <device_id> --minutes 120
+uv run main.py devices --id <device_id> --minutes 120
 
 # Output as JSON
-python main.py -o json devices --search "firewall"
+uv run main.py -o json devices --search "firewall"
 
 # Send a webhook alert for any offline device (designed for cron)
-python main.py -o webhook devices
+uv run main.py -o webhook devices
 ```
 
 **Options:**
@@ -258,13 +258,13 @@ Fetches the DHCP event and device audit log.
 
 ```bash
 # Show recent events
-python main.py events
+uv run main.py events
 
 # Filter to a specific site, last 200 entries
-python main.py events --site-id abc123 --limit 200
+uv run main.py events --site-id abc123 --limit 200
 
 # Output as JSON
-python main.py -o json events
+uv run main.py -o json events
 ```
 
 **Options:**
@@ -286,16 +286,16 @@ Fetches the compromised / blacklisted device alert list. In webhook mode, fires 
 
 ```bash
 # Show all open security alerts
-python main.py alerts
+uv run main.py alerts
 
 # Show only blacklisted devices
-python main.py alerts --tab blacklist
+uv run main.py alerts --tab blacklist
 
 # Send a webhook alert if any compromised devices are found (for cron)
-python main.py -o webhook alerts
+uv run main.py -o webhook alerts
 
 # Filter to a specific site
-python main.py alerts --site-id abc123 --limit 50
+uv run main.py alerts --site-id abc123 --limit 50
 ```
 
 **Options:**
@@ -318,25 +318,25 @@ Fetches ZTB gateway appliances across all branch sites. By default both gateway 
 
 ```bash
 # List all gateways (both types)
-python main.py gateways
+uv run main.py gateways
 
 # Filter by type
-python main.py gateways --type isolation
+uv run main.py gateways --type isolation
 
 # Search by name or IP
-python main.py gateways --search "branch-01"
+uv run main.py gateways --search "branch-01"
 
 # Inspect a single gateway (details + resource stats + interfaces)
-python main.py gateways --id <gateway_id>
+uv run main.py gateways --id <gateway_id>
 
 # Output as JSON
-python main.py -o json gateways
+uv run main.py -o json gateways
 
 # Send a webhook alert if any gateways are unhealthy (for cron)
-python main.py -o webhook gateways
+uv run main.py -o webhook gateways
 
 # Start Prometheus exporter for gateway metrics (blocks)
-python main.py -o prometheus gateways --prometheus-port 9091 --interval 30
+uv run main.py -o prometheus gateways --prometheus-port 9091 --interval 30
 ```
 
 **Options:**
@@ -353,7 +353,7 @@ python main.py -o prometheus gateways --prometheus-port 9091 --interval 30
 
 **CLI table columns:** Gateway ID, Name, IP Address, Public IP, State, Health, Version, VRRP, Last Poll, Cluster/Site
 
-**Detail view (`--id`):** Key-value panel (IPs, state, health, versions, VRRP, NAT/WireGuard flags), gateway resource utilisation (CPU/memory), and network interfaces table.
+**Detail view (`--id`):** Key-value panel (IPs, state, health, versions, VRRP, NAT/WireGuard flags), gateway resource utilisation (CPU/memory), and network interfaces table (name, type, IP, MAC, admin/oper state, speed, MTU, duplex — plus RX/TX bytes, packets, dropped, and errors when `if_stats` are available).
 
 **Webhook behaviour:** Fires only if one or more gateways have an `operational_state` outside `active / online / up / running / connected` or a `health_color` of `red`. Silent on a clean run.
 
@@ -367,19 +367,19 @@ One-shot infrastructure snapshot (BGP, GRE tunnels, VRRP, site info, gateway res
 
 ```bash
 # One-shot CLI snapshot
-python main.py metrics
+uv run main.py metrics
 
 # Include gateway resource stats
-python main.py metrics --gateway-id <gateway_id>
+uv run main.py metrics --gateway-id <gateway_id>
 
 # JSON snapshot (pipe-friendly)
-python main.py -o json metrics --gateway-id <gateway_id>
+uv run main.py -o json metrics --gateway-id <gateway_id>
 
 # Start Prometheus exporter (blocks until Ctrl+C)
-python main.py -o prometheus metrics
+uv run main.py -o prometheus metrics
 
 # Prometheus exporter with gateway metrics, custom port and interval
-python main.py -o prometheus metrics \
+uv run main.py -o prometheus metrics \
   --gateway-id <gateway_id> \
   --prometheus-port 9091 \
   --interval 30
@@ -407,19 +407,19 @@ Runs three operational checks against a gateway to verify that core network serv
 
 ```bash
 # Run all three health checks (interactive device picker for DHCP)
-python main.py health --gateway-id <gateway_id>
+uv run main.py health --gateway-id <gateway_id>
 
 # Specify a device for the DHCP check (skips picker)
-python main.py health --gateway-id <gateway_id> --device-id <device_id>
+uv run main.py health --gateway-id <gateway_id> --device-id <device_id>
 
 # Shorter sample window
-python main.py health --gateway-id <gateway_id> --sample-interval 5
+uv run main.py health --gateway-id <gateway_id> --sample-interval 5
 
 # JSON output (auto-selects first device for DHCP)
-python main.py -o json health --gateway-id <gateway_id>
+uv run main.py -o json health --gateway-id <gateway_id>
 
 # Webhook alert if any check fails (for cron)
-python main.py -o webhook health --gateway-id <gateway_id>
+uv run main.py -o webhook health --gateway-id <gateway_id>
 ```
 
 **Options:**
@@ -472,19 +472,19 @@ Webhook mode is designed for **cron jobs** — the script exits silently if ther
 
 ```cron
 # Check for offline devices every 5 minutes
-*/5 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook devices
+*/5 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook devices
 
 # Check for unhealthy gateways every 5 minutes
-*/5 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook gateways
+*/5 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook gateways
 
 # Check for security alerts every 15 minutes
-*/15 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook alerts
+*/15 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook alerts
 
 # Health check (DNS, DHCP, traffic) every 10 minutes
-*/10 * * * * /path/to/.venv/bin/python /path/to/main.py -o webhook health --gateway-id <gateway_id>
+*/10 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook health --gateway-id <gateway_id>
 
 # Use a .env file for credentials
-*/5 * * * * cd /path/to/ZTB-monitor && .venv/bin/python main.py -o webhook alerts
+*/5 * * * * cd /path/to/ZTB-monitor && uv run main.py -o webhook alerts
 ```
 
 ---
@@ -494,7 +494,7 @@ Webhook mode is designed for **cron jobs** — the script exits silently if ther
 Run the exporter as a long-lived process (systemd service, Docker container, etc.):
 
 ```bash
-python main.py -o prometheus metrics --gateway-id <id> --prometheus-port 9090
+uv run main.py -o prometheus metrics --gateway-id <id> --prometheus-port 9090
 ```
 
 The exporter exposes `http://<host>:9090/metrics` for Prometheus to scrape.

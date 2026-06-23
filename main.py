@@ -2,12 +2,12 @@
 """ZTB Monitor — CLI entry point.
 
 Usage examples:
-  python main.py devices
-  python main.py devices --id <device_id>
-  python main.py events
-  python main.py alerts
-  python main.py metrics
-  python main.py metrics --output prometheus --gateway-id <id>
+  uv run main.py devices
+  uv run main.py devices --id <device_id>
+  uv run main.py events
+  uv run main.py alerts
+  uv run main.py metrics
+  uv run main.py metrics --output prometheus --gateway-id <id>
 
 Output modes  (-o / --output):
   cli         Pretty tables via Rich  (default for interactive use)
@@ -352,7 +352,7 @@ def metrics(ctx, gateway_id, prometheus_port, interval):
 
     \b
     For Grafana integration, run:
-        python main.py metrics --output prometheus [--gateway-id <id>]
+        uv run main.py metrics --output prometheus [--gateway-id <id>]
 
     Then point Prometheus at http://<host>:<port>/metrics.
     """

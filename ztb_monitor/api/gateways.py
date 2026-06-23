@@ -47,11 +47,13 @@ def get_gateway_details(client: ZTBClient, gateway_id: str) -> dict:
 def get_gateway_interfaces(
     client: ZTBClient,
     gateway_id: str = "",
-    limit: int = 100,
-    page: int = 1,
 ) -> dict:
-    """Get network interfaces for a gateway."""
-    params: dict = {"limit": limit, "page": page}
+    """Get network interfaces for a gateway.
+
+    NOTE: The v2 API returns ``[]`` when both ``limit`` and ``page`` are
+    supplied together, so we intentionally omit them.
+    """
+    params: dict = {}
     if gateway_id:
         params["gatewayId"] = gateway_id
     return client.get("/api/v2/Gateway/interfaces", params=params)

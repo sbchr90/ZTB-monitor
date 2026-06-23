@@ -448,32 +448,70 @@ def display_gateway_details(details: dict, resource_status: Optional[dict], inte
         display_gateway_status(resource_status, gw_id)
 
     if interfaces:
-        iface_rows = _rows_from(interfaces, "rows", "data", "interfaces")
+        # Response may be a list of {gateway_id, interfaces: [...]} wrappers
+        if isinstance(interfaces, list) and interfaces and isinstance(interfaces[0], dict) and "interfaces" in interfaces[0]:
+            iface_rows = []
+            for entry in interfaces:
+                iface_rows.extend(entry.get("interfaces", []))
+        else:
+            iface_rows = _rows_from(interfaces, "rows", "data", "interfaces")
         if iface_rows:
             itable = Table(title="Interfaces", box=box.ROUNDED)
             itable.add_column("Name")
+            itable.add_column("Type")
             itable.add_column("IP")
-            itable.add_column("Admin State")
-            itable.add_column("Oper State")
+            itable.add_column("MAC")
+            itable.add_column("Admin")
+            itable.add_column("Oper")
             itable.add_column("Speed")
-            itable.add_column("RX Bytes", justify="right")
-            itable.add_column("TX Bytes", justify="right")
+            itable.add_column("MTU", justify="right")
+            itable.add_column("Duplex")
+
+            stable = Table(title="Interface Stats", box=box.ROUNDED)
+            stable.add_column("Name")
+            stable.add_column("RX Bytes", justify="right")
+            stable.add_column("TX Bytes", justify="right")
+            stable.add_column("RX Pkts", justify="right")
+            stable.add_column("TX Pkts", justify="right")
+            stable.add_column("RX Drop", justify="right")
+            stable.add_column("TX Drop", justify="right")
+            stable.add_column("RX Err", justify="right")
+            stable.add_column("TX Err", justify="right")
 
             for iface in iface_rows:
                 admin = iface.get("admin_state", "")
                 oper = iface.get("operational_state", iface.get("oper_state", ""))
                 stats = iface.get("if_stats", {}) or {}
+
+                def _stat(key):
+                    val = stats.get(key, "")
+                    return str(val) if val != "" else ""
+
                 itable.add_row(
                     iface.get("name", iface.get("interface_name", "")),
+                    iface.get("interface_type", ""),
                     iface.get("ip_address", iface.get("ip", "")),
+                    iface.get("mac", ""),
                     Text(admin, style=_status_style(admin)),
                     Text(oper, style=_status_style(oper)),
-                    str(iface.get("speed", "")),
-                    str(stats.get("rx_bytes", "")),
-                    str(stats.get("tx_bytes", "")),
+                    str(iface.get("if_speed", iface.get("speed", ""))),
+                    str(iface.get("if_mtu", "")) if iface.get("if_mtu") else "",
+                    iface.get("if_duplex", ""),
+                )
+                stable.add_row(
+                    iface.get("name", iface.get("interface_name", "")),
+                    _stat("rx_bytes"),
+                    _stat("tx_bytes"),
+                    _stat("rx_packets"),
+                    _stat("tx_packets"),
+                    _stat("rx_dropped"),
+                    _stat("tx_dropped"),
+                    _stat("rx_errors"),
+                    _stat("tx_errors"),
                 )
 
             console.print(itable)
+            console.print(stable)
 
 
 # ---------------------------------------------------------------------------
