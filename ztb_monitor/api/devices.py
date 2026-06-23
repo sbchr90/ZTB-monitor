@@ -5,19 +5,66 @@ def get_devices(
     client: ZTBClient,
     search: str = "",
     site_id: str = "",
-    limit: int = 100,
+    limit: int = 5,
     page: int = 1,
     tags: str = "",
 ) -> dict:
-    """List active devices (v2 endpoint, lightweight)."""
-    params: dict = {"limit": limit, "page": page}
+    """List active devices (v2 endpoint, lightweight).
+
+    The v2 API's server-side ``search`` param acknowledges matches (via
+    ``count``) but returns empty ``rows``, so filtering is done client-side.
+    Pagination uses small page sizes because the endpoint returns fewer
+    rows as ``limit`` increases (drops to zero above ~8).
+    """
+    _PAGE_SIZE = 5
+
     if search:
-        params["search"] = search
+        all_rows = _fetch_all_devices(client, site_id=site_id, tags=tags, page_size=_PAGE_SIZE)
+        term = search.lower()
+        filtered = [
+            d for d in all_rows
+            if term in d.get("hostname", "").lower()
+            or term in d.get("device_name", "").lower()
+            or term in d.get("ip_address", "").lower()
+            or term in d.get("mac", "").lower()
+            or term in d.get("mac_address", "").lower()
+        ]
+        return {"result": {"count": len(filtered), "rows": filtered}}
+
+    params: dict = {"limit": limit, "page": page}
     if site_id:
         params["siteId"] = site_id
     if tags:
         params["tags"] = tags
     return client.get("/api/v2/devices/active", params=params)
+
+
+def _fetch_all_devices(
+    client: ZTBClient,
+    site_id: str = "",
+    tags: str = "",
+    page_size: int = 5,
+) -> list:
+    """Paginate through all active devices with a small page size."""
+    all_rows: list = []
+    page = 1
+    while True:
+        params: dict = {"limit": page_size, "page": page}
+        if site_id:
+            params["siteId"] = site_id
+        if tags:
+            params["tags"] = tags
+        data = client.get("/api/v2/devices/active", params=params)
+        result = data.get("result", {})
+        rows = result.get("rows", []) if isinstance(result, dict) else []
+        if not rows:
+            break
+        all_rows.extend(rows)
+        total = result.get("count", 0) if isinstance(result, dict) else 0
+        if len(all_rows) >= total:
+            break
+        page += 1
+    return all_rows
 
 
 def get_devices_v3(
