@@ -554,6 +554,8 @@ def health(ctx, gateway_id, device_id):
                     "name": "DHCP (lease history)",
                     "status": "FAIL",
                     "details": f"No DHCP lease history for {sel_name} ({sel_id})",
+                    "device": sel_name,
+                    "device_id": sel_id,
                 })
             elif not dated:
                 latest_ts = ip_addresses[0].get("timestamp", "unknown")
@@ -561,6 +563,8 @@ def health(ctx, gateway_id, device_id):
                     "name": "DHCP (lease history)",
                     "status": "FAIL",
                     "details": f"{sel_name} — could not parse lease timestamp: {latest_ts}",
+                    "device": sel_name,
+                    "device_id": sel_id,
                 })
             else:
                 lease_dt, latest = max(dated, key=lambda x: x[0])
@@ -572,6 +576,11 @@ def health(ctx, gateway_id, device_id):
                         "name": "DHCP (lease history)",
                         "status": "PASS",
                         "details": f"{sel_name} — {latest_ip}, last lease: {latest_ts} ({int(age)}s ago)",
+                        "device": sel_name,
+                        "device_id": sel_id,
+                        "last_lease": latest_ts,
+                        "lease_age_seconds": int(age),
+                        "threshold_seconds": _DHCP_MAX_LEASE_AGE_SECONDS,
                     })
                 else:
                     results.append({
@@ -581,6 +590,11 @@ def health(ctx, gateway_id, device_id):
                             f"{sel_name} — last lease {latest_ts} is {int(age)}s old "
                             f"(> {_DHCP_MAX_LEASE_AGE_SECONDS}s threshold)"
                         ),
+                        "device": sel_name,
+                        "device_id": sel_id,
+                        "last_lease": latest_ts,
+                        "lease_age_seconds": int(age),
+                        "threshold_seconds": _DHCP_MAX_LEASE_AGE_SECONDS,
                     })
     except Exception as exc:
         results.append({
@@ -590,9 +604,20 @@ def health(ctx, gateway_id, device_id):
         })
 
     # --- Output ---
+    passed = sum(1 for r in results if r.get("status") == "PASS")
+    overall_status = "PASS" if passed == len(results) else "FAIL"
+
     try:
         if output == "json":
-            click.echo(json.dumps(results, indent=2, default=str))
+            report = {
+                "gateway_id": gateway_id,
+                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "overall_status": overall_status,
+                "passed": passed,
+                "total": len(results),
+                "checks": results,
+            }
+            click.echo(json.dumps(report, indent=2, default=str))
 
         elif output == "webhook":
             if not config.webhook_url:

@@ -424,6 +424,35 @@ uv run main.py -o webhook health --gateway-id <gateway_id>
 
 **CLI output:** Summary table with check name, PASS/FAIL status, and details, plus an overall pass count.
 
+**JSON output (`-o json`):** A structured report object with `gateway_id`, `timestamp`, `overall_status`, `passed`/`total` counts, and a `checks` array. Each check has `name`, `status`, and `details`; the DHCP check additionally carries machine-readable fields (`device`, `device_id`, `last_lease`, `lease_age_seconds`, `threshold_seconds`).
+
+```json
+{
+  "gateway_id": "3db629bf-364e-451f-af24-53d88ce9dd5e",
+  "timestamp": "2026-06-24T13:28:16Z",
+  "overall_status": "FAIL",
+  "passed": 1,
+  "total": 2,
+  "checks": [
+    {
+      "name": "DNS (dnsproxy container)",
+      "status": "PASS",
+      "details": "CPU: 0.5%, Memory: 45MB"
+    },
+    {
+      "name": "DHCP (lease history)",
+      "status": "FAIL",
+      "details": "ip-10-0-1-254 — last lease 2026-06-24T09:12:03Z is 845s old (> 300s threshold)",
+      "device": "ip-10-0-1-254",
+      "device_id": "d1629d96-366a-485f-a814-7209762b7223",
+      "last_lease": "2026-06-24T09:12:03Z",
+      "lease_age_seconds": 845,
+      "threshold_seconds": 300
+    }
+  ]
+}
+```
+
 **Webhook behaviour:** Fires only if one or more checks fail. Silent when all checks pass.
 
 ---
